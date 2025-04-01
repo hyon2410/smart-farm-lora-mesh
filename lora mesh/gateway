@@ -1,0 +1,167 @@
+#include <WiFi.h>
+#include <PubSubClient.h>
+#include <SPI.h>
+#include <LoRa.h>
+
+// WiFi & MQTT Config
+const char* ssid = "9BE6";
+const char* password = "912172293";
+const char* mqtt_server = "192.168.1.3";
+const int mqtt_port = 1885;
+const char* mqtt_user = "user1";
+const char* mqtt_password = "123456";
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+// LoRa Config
+#define LORA_SS 5
+#define LORA_RST 14
+#define LORA_DIO0 2
+#define LORA_BAND 433E6
+
+#define GATEWAY_ID 3
+#define RELAY_ID 2
+
+// Hàm kết nối WiFi
+void connectWiFi();
+// Hàm kết nối MQTT
+void connectMQTT();
+// Hàm xử lý lệnh từ MQTT
+void callback(char* topic, byte* message, unsigned int length);
+// Hàm gửi lệnh xuống Relay qua LoRa
+void sendCommandToRelay(String command);
+// Hàm gửi dữ liệu lên MQTT
+void sendDataToMQTT(String data);
+
+void setup() {
+    Serial.begin(115200);
+
+    // Kết nối WiFi
+    connectWiFi();
+
+    // Kết nối MQTT
+    client.setServer(mqtt_server, mqtt_port);
+    client.setCallback(callback);
+    connectMQTT();
+
+    // Khởi động LoRa
+    LoRa.setPins(LORA_SS, LORA_RST, LORA_DIO0);
+    if (!LoRa.begin(LORA_BAND)) {
+        Serial.println("❌ LoRa init failed!");
+        while (1);
+    }
+
+    Serial.println("🚀 Gateway (Node 3) Ready!");
+}
+
+void loop() {
+    // Kiểm tra dữ liệu nhận được từ LoRa
+    int packetSize = LoRa.parsePacket();
+    if (packetSize) {
+        String receivedData = "";
+        while (LoRa.available()) {
+            receivedData += (char)LoRa.read();
+        }
+
+        Serial.println("📥 Data Received: " + receivedData);
+
+        // Tách ID của Sender và Receiver
+        int firstComma = receivedData.indexOf(',');
+        int secondComma = receivedData.indexOf(',', firstComma + 1);
+
+        if (firstComma == -1 || secondComma == -1) {
+            Serial.println("⚠️ Invalid data format!");
+            return;
+        }
+
+        String senderID = receivedData.substring(0, firstComma);
+        String receiverID = receivedData.substring(firstComma + 1, secondComma);
+
+        // Chỉ gửi MQTT nếu gói tin hướng đến Gateway (ID = 3)
+        if (receiverID.toInt() == GATEWAY_ID) {
+            Serial.println("📡 Sent to MQTT: " + receivedData);
+            // Gửi lên MQTT với chủ đề "sensor/data"
+            sendDataToMQTT(receivedData);
+        } else {
+            Serial.println("❌ Ignored Data: Not for Gateway");
+        }
+    }
+
+    // Cập nhật MQTT loop
+    client.loop();
+}
+
+// Kết nối WiFi
+void connectWiFi() {
+    Serial.print("🔗 Connecting to WiFi...");
+    WiFi.begin(ssid, password);
+    while (WiFi.status() != WL_CONNECTED) {
+        delay(1000);
+        Serial.print(".");
+    }
+    Serial.println("\n✅ Connected to WiFi!");
+}
+
+// Hàm kết nối MQTT
+void connectMQTT() {
+    while (!client.connected()) {
+        Serial.print("🔗 Connecting to MQTT...");
+        if (client.connect("ESP32_Gateway", mqtt_user, mqtt_password)) {
+            Serial.println("\n✅ Connected to MQTT!");
+            // Đăng ký topic mới: home/control
+            if (client.subscribe("home/control")) {
+                Serial.println("✅ Subscribed to home/control");
+            } else {
+                Serial.println("❌ Failed to subscribe!");
+            }
+        } else {
+            Serial.print("❌ Failed (State: ");
+            Serial.print(client.state());
+            Serial.println("), retrying...");
+            delay(2000);
+        }
+    }
+}
+
+// Xử lý lệnh từ MQTT
+void callback(char* topic, byte* message, unsigned int length) {
+    Serial.print("📩 MQTT Command Received on ");
+    Serial.print(topic);
+    Serial.print(": ");
+
+    String command = "";
+    for (int i = 0; i < length; i++) {
+        command += (char)message[i];
+    }
+    Serial.println(command);
+
+    // Kiểm tra topic là "home/control"
+    if (String(topic) == "home/control") {
+        Serial.println("✅ Lệnh hợp lệ, gửi xuống Relay...");
+        sendCommandToRelay(command);
+    } else {
+        Serial.println("⚠️ Lệnh không đúng topic!");
+    }
+}
+
+
+// Gửi lệnh xuống Relay qua LoRa
+void sendCommandToRelay(String command) {
+    String formattedCommand = String(GATEWAY_ID) + "," + String(RELAY_ID) + "," + command;
+
+    LoRa.beginPacket();
+    LoRa.print(formattedCommand);
+    LoRa.endPacket();
+
+    Serial.println("📤 Sent Command to Relay: " + formattedCommand);
+}
+
+// Gửi dữ liệu lên MQTT
+void sendDataToMQTT(String data) {
+    if (client.publish("home/sensor", data.c_str())) {
+        Serial.println("📡 Sent to MQTT: " + data);
+    } else {
+        Serial.println("❌ MQTT Publish Failed!");
+    }
+}

@@ -1,0 +1,168 @@
+/* Đặt các thuộc tính cho thẻ body */
+body {
+  margin: 0;
+  padding: 0;
+  height: 100vh; /* Sử dụng 100% chiều cao màn hình */
+  background: linear-gradient(135deg, #00c3ff 0%, #1cefff 100%);
+  font-family: 'Open Sans', sans-serif; /* Font chữ phù hợp cho web */
+  display: flex; /* Sử dụng flex để căn chỉnh */
+  flex-direction: column; /* Định hướng flex theo cột */
+}
+
+/* Đặt các thuộc tính cho thanh điều hướng */
+nav {
+  width: 70px;
+  background-color: #333;
+  color: white;
+  padding: 15px;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* Thêm khoảng trống giữa các phần tử */
+  align-items: center;
+}
+
+/* Đặt thuộc tính cho danh sách trong thanh điều hướng */
+nav ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+}
+
+/* Đặt thuộc tính cho các mục trong danh sách */
+nav ul li {
+  margin: 15px 0;
+  text-align: center;
+}
+
+/* Đặt thuộc tính cho các liên kết trong thanh điều hướng */
+nav ul li a {
+  color: white;
+  text-decoration: none;
+  font-size: 18px;
+  transition: color 0.3s ease; /* Thêm hiệu ứng chuyển màu khi hover */
+}
+
+/* Thay đổi kiểu liên kết khi di chuột qua */
+nav ul li a:hover {
+  color: #ffdb4d; /* Thêm màu vàng nhạt khi hover */
+  text-decoration: underline;
+}
+
+/* Đặt các thuộc tính cho khối chứa nội dung chính */
+.content-container {
+  margin-left: 70px; /* Để lại không gian cho thanh điều hướng */
+  width: calc(100% - 70px); /* Chiều rộng 100% trừ thanh điều hướng */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+/* Đặt các thuộc tính cho khối chứa dashboard */
+.dashboard-container {
+  display: flex;
+  flex-wrap: wrap; /* Cho phép xuống hàng khi không đủ chỗ */
+  gap: 30px; /* Giảm khoảng cách giữa các hộp thông tin */
+  margin-top: 50px;
+  justify-content: center; /* Canh giữa các hộp trên màn hình */
+}
+
+/* Đặt thuộc tính cho các hộp thông tin */
+.info-box {
+  width: 200px;
+  padding: 15px; /* Thêm khoảng đệm */
+  background-color: #007bff;
+  border-radius: 8px;
+  color: white;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease; /* Thêm hiệu ứng hover */
+}
+
+/* Thêm hiệu ứng phóng to và bóng đổ khi hover vào các hộp thông tin */
+.info-box:hover {
+  transform: scale(1.05);
+  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Đặt thuộc tính cho tiêu đề trong hộp thông tin */
+.info-box h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Đặt thuộc tính cho phần nội dung trong hộp thông tin */
+.info-box p {
+  margin: 10px 0 0;
+  font-size: 36px;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Đặt khoảng cách cho biểu tượng trong hộp thông tin */
+.info-box p i {
+  margin-left: 10px;
+}
+
+/* Đặt màu nền cho các loại hộp thông tin khác nhau */
+.info-box.temp {
+  background-color: #17a2b8;
+}
+
+.info-box.humidity {
+  background-color: #28a745;
+}
+
+.info-box.light {
+  background-color: #ff851b;
+}
+
+.info-box h2 i {
+  color: #ffd700; /* Màu vàng cho biểu tượng LED */
+  font-size: 40px; /* Kích thước biểu tượng */
+  margin-right: 8px; /* Khoảng cách giữa biểu tượng và chữ */
+}
+
+.fan-control h2 i {
+  color: #00bfff; /* Màu xanh cho biểu tượng FAN */
+}
+
+
+/* Đặt các thuộc tính cho khối chứa biểu đồ */
+.chart-container {
+  width: 100%;
+  max-width: 800px;
+  margin-top: 50px; /* Điều chỉnh khoảng cách phía trên biểu đồ */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Đặt các thuộc tính cho biểu đồ */
+canvas {
+  background: #111111;
+  border-radius: 10px;
+  padding: 20px;
+}
+#notification {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #28a745;  /* Màu nền mặc định là xanh lá */
+  color: white;  /* Màu chữ */
+  padding: 10px 20px;
+  border-radius: 5px;
+  display: none;  /* Ẩn thông báo mặc định */
+  font-size: 18px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  z-index: 1000;  /* Đảm bảo thông báo nằm trên các phần tử khác */
+}

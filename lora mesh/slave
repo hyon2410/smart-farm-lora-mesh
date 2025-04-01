@@ -1,0 +1,104 @@
+#include <SPI.h>
+#include <LoRa.h>
+#include <DHT.h>
+
+#define DHT_PIN 15
+#define DHTTYPE DHT11
+DHT dht(DHT_PIN, DHTTYPE);
+
+#define SOIL_MOISTURE_A0_PIN 35
+#define LIGHT_SENSOR_PIN 34
+#define PUMP_PIN 25
+#define LIGHT_PIN 26
+
+#define LORA_SS 5
+#define LORA_RST 14
+#define LORA_DIO0 2
+#define LORA_BAND 433E6
+
+#define SLAVE_ID 1
+#define RELAY_ID 2
+
+void sendData(const String &data, int dst);
+
+void setup() {
+    Serial.begin(115200);
+    pinMode(PUMP_PIN, OUTPUT);
+    pinMode(LIGHT_PIN, OUTPUT);
+    digitalWrite(PUMP_PIN, LOW);
+    digitalWrite(LIGHT_PIN, LOW);
+    
+    dht.begin();
+    LoRa.setPins(LORA_SS, LORA_RST, LORA_DIO0);
+    if (!LoRa.begin(LORA_BAND)) {
+        Serial.println("LoRa init failed!");
+        while (1);
+    }
+    Serial.println("Node 1 (SLAVE) Ready!");
+}
+
+void loop() {
+    //  ƯU TIÊN XỬ LÝ LỆNH TRƯỚC
+    int packetSize = LoRa.parsePacket();
+    if (packetSize) {
+        String receivedData = "";
+        while (LoRa.available()) {
+            receivedData += (char)LoRa.read();
+        }
+        Serial.println("Received: " + receivedData);
+
+        //  Tách dữ liệu từ gói tin (Sender_ID, Receiver_ID, Command)
+        int senderID, receiverID, command;
+        sscanf(receivedData.c_str(), "%d,%d,%d", &senderID, &receiverID, &command);
+
+        //  Chỉ xử lý nếu Sender là Node 2 (Relay) và Receiver là Node 1 (Slave)
+        if (senderID == RELAY_ID && receiverID == SLAVE_ID) {
+            Serial.println("Valid command from Relay!");
+
+            // Xử lý lệnh
+            if (command == 1) {
+                digitalWrite(LIGHT_PIN, HIGH);
+                Serial.println(" Đèn BẬT");
+            } else if (command == 2) {
+                digitalWrite(LIGHT_PIN, LOW);
+                Serial.println(" Đèn TẮT");
+            } else if (command == 3) {
+                digitalWrite(PUMP_PIN, HIGH);
+                Serial.println(" Máy bơm BẬT");
+            } else if (command == 4) {
+                digitalWrite(PUMP_PIN, LOW);
+                Serial.println(" Máy bơm TẮT");
+            }
+        } else {
+            Serial.println("⚠ Lệnh không hợp lệ! Bỏ qua...");
+        }
+    }
+
+
+    // 📌 Đọc cảm biến
+    float temp = dht.readTemperature();
+    float hum = dht.readHumidity();
+    int soilRaw = analogRead(SOIL_MOISTURE_A0_PIN);
+    int lightRaw = analogRead(LIGHT_SENSOR_PIN);
+
+    // Chuyển đổi sang %
+    int soilPercent = map(soilRaw, 4095, 2500, 0, 100);
+    int lightPercent = map(lightRaw, 4095, 0, 0, 100);
+
+    //  Gửi dữ liệu cảm biến
+    String data = String(SLAVE_ID) + "," + String(RELAY_ID) + "," + String(millis()) + "," + 
+                  String(temp) + "," + String(hum) + "," + String(soilPercent) + "," + String(lightPercent);
+
+    sendData(data, RELAY_ID);
+    Serial.printf(" Temp: %.2f°C |  Hum: %.2f%% |  Soil: %d%% |  Light: %d%%\n", 
+                   temp, hum, soilPercent, lightPercent);
+
+    delay(10000);  // Gửi mỗi 10 giây
+}
+
+void sendData(const String &data, int dst) {
+    LoRa.beginPacket();
+    LoRa.print(data);
+    LoRa.endPacket();
+    Serial.println("Sent: " + data);
+}

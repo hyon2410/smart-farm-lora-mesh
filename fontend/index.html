@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Smart Farm</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+    <!-- Thông báo lỗi -->
+    <div id="notification" style="display:none; color: red; font-weight: bold; margin-top: 10px;"></div>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="history.html">History</a></li>
+            <li><a href="threshold.html">Ngưỡng Ẩm Đất</a></li>
+        </ul>
+    </nav>
+
+    <div class="content-container">
+        <!-- Hàng hiển thị cảm biến -->
+        <div class="dashboard-container">
+            <div class="info-box temp">
+                <h2>Nhiệt Độ</h2>
+                <p id="tempValue">--°C <i class="fas fa-thermometer-half"></i></p>
+            </div>
+            <div class="info-box humidity">
+                <h2>Độ Ẩm Không Khí</h2>
+                <p id="humidityValue">--% <i class="fas fa-tint"></i></p>
+            </div>
+            <div class="info-box soil">
+                <h2>Độ Ẩm Đất</h2>
+                <p id="soilValue">--% <i class="fas fa-seedling"></i></p>
+            </div>
+            <div class="info-box light">
+                <h2>Độ Sáng</h2>
+                <p id="lightValue">-- lux <i class="fas fa-sun"></i></p>
+            </div>
+        </div>
+
+        <!-- Hàng hiển thị nút điều khiển -->
+        <div class="dashboard-container">
+            <div class="info-box led-control" id="btnLedControl">
+                <h2><i class="fas fa-lightbulb"></i> LED</h2>
+                <p id="ledStatus">--</p>
+            </div>
+            <div class="info-box pump-control" id="btnPumpControl">
+                <h2><i class="fas fa-faucet"></i> BƠM</h2>
+                <p id="pumpStatus">--</p>
+            </div>
+        </div>
+
+        <!-- Biểu đồ cảm biến -->
+        <div class="chart-container">
+            <canvas id="sensorChart"></canvas>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

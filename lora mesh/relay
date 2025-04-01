@@ -1,0 +1,96 @@
+#include <SPI.h>
+#include <LoRa.h>
+
+#define LORA_SS 5
+#define LORA_RST 14
+#define LORA_DIO0 2
+#define LORA_BAND 433E6
+
+#define RELAY_ID 2
+#define GATEWAY_ID 3
+#define SLAVE_ID 1
+
+QueueHandle_t loraQueue;
+
+void forwardData(const String &data, int dst);
+
+// Task nhận & gửi lệnh từ Gateway -> Slave
+void taskCommandHandler(void *pvParameters) {
+    while (1) {
+        if (uxQueueMessagesWaiting(loraQueue) > 0) {
+            String command;
+            if (xQueueReceive(loraQueue, &command, portMAX_DELAY) == pdTRUE) {
+                Serial.println("📩 Command from Gateway: " + command);
+                forwardData(command, SLAVE_ID);
+            }
+        }
+        vTaskDelay(10 / portTICK_PERIOD_MS); // Giảm tải CPU
+    }
+}
+
+// Task nhận & gửi dữ liệu cảm biến từ Slave -> Gateway
+void taskDataHandler(void *pvParameters) {
+    while (1) {
+        int packetSize = LoRa.parsePacket();
+        if (packetSize) {
+            String receivedData = "";
+            while (LoRa.available()) {
+                receivedData += (char)LoRa.read();
+            }
+
+            Serial.println("📥 LoRa Received: " + receivedData);
+
+            if (receivedData.startsWith(String(SLAVE_ID))) {
+                Serial.println("📡 Forwarding to Gateway...");
+                forwardData(receivedData, GATEWAY_ID);
+            } else if (receivedData.startsWith(String(GATEWAY_ID))) {
+                Serial.println("🚀 Forwarding to Slave...");
+                xQueueSend(loraQueue, &receivedData, portMAX_DELAY);
+            }
+        }
+        vTaskDelay(50 / portTICK_PERIOD_MS); // Cho task khác chạy
+    }
+}
+
+void setup() {
+    Serial.begin(115200);
+    LoRa.setPins(LORA_SS, LORA_RST, LORA_DIO0);
+    if (!LoRa.begin(LORA_BAND)) {
+        Serial.println("❌ LoRa init failed!");
+        while (1);
+    }
+
+    loraQueue = xQueueCreate(10, sizeof(String)); // Tạo hàng đợi cho lệnh MQTT
+
+    Serial.println("🚀 Node 2 (RELAY) Ready!");
+
+    xTaskCreate(taskCommandHandler, "CommandTask", 4096, NULL, 2, NULL);
+    xTaskCreate(taskDataHandler, "DataTask", 4096, NULL, 1, NULL);
+}
+
+void loop() {
+    vTaskDelay(1000 / portTICK_PERIOD_MS); // Chỉ để giữ chương trình chạy
+}
+
+// Chuyển tiếp dữ liệu
+void forwardData(const String &data, int dst) {
+    int firstComma = data.indexOf(',');
+    int secondComma = data.indexOf(',', firstComma + 1);
+
+    if (firstComma == -1 || secondComma == -1) {
+        Serial.println("⚠️ Invalid data format! Skipping...");
+        return;
+    }
+
+    String modifiedData;
+    if (dst == SLAVE_ID) { 
+        modifiedData = String(RELAY_ID) + "," + String(SLAVE_ID) + data.substring(secondComma);
+    } else {
+        modifiedData = String(RELAY_ID) + "," + String(GATEWAY_ID) + data.substring(secondComma);
+    }
+
+    LoRa.beginPacket();
+    LoRa.print(modifiedData);
+    LoRa.endPacket();
+    Serial.println("📤 Forwarded to " + String(dst) + ": " + modifiedData);
+}

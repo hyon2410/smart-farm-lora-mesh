@@ -1,0 +1,13 @@
+CREATE DATABASE esp32_data;
+USE esp32_data;
+CREATE TABLE sensor_data (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    DeviceID INT,
+    Temp FLOAT,
+    Humid FLOAT,
+    Soil INT,
+    Light INT,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+SELECT * FROM sensor_data;
+

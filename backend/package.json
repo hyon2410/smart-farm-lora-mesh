@@ -1,0 +1,17 @@
+{
+    "name": "smartfarm-backend",
+    "version": "1.0.0",
+    "description": "Backend cho hệ thống Smart Farm",
+    "main": "1.js",
+    "scripts": {
+        "start": "node 1.js"
+    },
+    "dependencies": {
+        "cors": "^2.8.5",
+        "express": "^4.21.2",
+        "mqtt": "^5.10.4",
+        "mysql2": "^3.14.0",
+        "serialport": "^13.0.0",
+        "ws": "^8.18.1"
+    }
+}
