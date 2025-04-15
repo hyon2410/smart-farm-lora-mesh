@@ -1,5 +1,5 @@
-const apiUrl = "http://192.168.1.3:5000/api/latest_sensor_data"; // API dữ liệu cảm biến
-const controlUrl = "http://192.168.1.3:5000/api/control_device"; // API điều khiển thiết bị
+const apiUrl = "http://192.168.223.176:5000/api/latest_sensor_data"; // API dữ liệu cảm biến
+const controlUrl = "http://192.168.223.176:5000/api/control_device"; // API điều khiển thiết bị
 
 // Biến lưu trữ trạng thái thiết bị
 let ledState = "OFF";

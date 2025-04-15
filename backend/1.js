@@ -9,7 +9,7 @@ app.use(bodyParser.json());
 app.use(cors());
 
 // MQTT Configuration
-const MQTT_BROKER = '192.168.1.3';
+const MQTT_BROKER = '192.168.223.176';
 const MQTT_PORT = 1885;
 const MQTT_TOPIC_CMD = 'home/control';
 const MQTT_TOPIC_SENSOR = 'home/sensor';
@@ -104,6 +104,9 @@ mqttClient.on('message', (topic, message) => {
           console.error(`⚠️ Dữ liệu ACK không hợp lệ: '${rawData}'`);
       }
   }
+});
+mqttClient.on('error', (err) => {
+    console.error('❌ MQTT connection error:', err.message);
 });
 
 
