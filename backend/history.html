@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lịch sử Dữ liệu và Thiết bị</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            background: linear-gradient(135deg, #00c3ff 0%, #1cefff 100%);
+            font-family: 'Open Sans', sans-serif;
+            display: flex;
+            flex-direction: column;
+        }
+        nav {
+            width: 70px;
+            background-color: #333;
+            color: white;
+            padding: 15px;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        nav ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            width: 100%;
+        }
+        nav ul li {
+            margin: 15px 0;
+            text-align: center;
+        }
+        nav ul li a {
+            color: white;
+            text-decoration: none;
+            font-size: 18px;
+        }
+        nav ul li a:hover {
+            text-decoration: underline;
+        }
+        .content-container {
+            margin-left: 70px;
+            padding: 20px;
+        }
+        .query-container {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .query-container input, .query-container button {
+            padding: 8px;
+            font-size: 14px;
+            border-radius: 5px;
+            border: none;
+        }
+        .query-container button {
+            width: 150px;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        .query-container button:hover {
+            background-color: #0056b3;
+        }
+        .tab-container button {
+            padding: 10px 20px;
+            margin-right: 5px;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .tab-container button.active {
+            background: #007bff;
+        }
+        .table-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 10px;
+            max-height: 500px;
+            overflow: hidden;
+        }
+        h1 {
+            color: white;
+            font-size: 24px;
+            text-align: center;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            max-width: 1200px;
+            margin: auto;
+            table-layout: fixed;
+        }
+        th, td {
+            border: 1px solid white;
+            padding: 10px;
+            text-align: center;
+            color: white;
+            word-wrap: break-word;
+            white-space: nowrap;
+        }
+        th {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        tr:nth-child(even) {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        thead {
+            display: block;
+        }
+        tbody {
+            display: block;
+            max-height: 420px;
+            overflow-y: auto;
+        }
+        thead th, tbody td {
+            min-width: 185px;
+        }
+        tbody td:nth-child(1), thead th:nth-child(1) {
+            min-width: 80px;
+        }
+        .pagination {
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .pagination button {
+            padding: 8px 12px;
+            border: none;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .pagination button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        .error {
+            color: red;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <ul>
+            <li><a href="index.html" target="_self">HOME</a></li>
+            <li><a href="history.html" target="data_tab">DATA</a></li>
+            <li><a href="device_history.html" target="device_tab">DEVICE</a></li>
+            <li><a href="new.html" target="new_tab">NEW</a></li>
+        </ul>
+    </nav>
+    <div class="content-container">
+        <div class="tab-container">
+            <button onclick="switchTab('sensor')" class="active">Lịch sử Cảm biến</button>
+            <button onclick="switchTab('device')">Lịch sử Thiết bị</button>
+        </div>
+        <div class="query-container">
+            <input type="date" id="startDate" placeholder="Ngày bắt đầu">
+            <input type="date" id="endDate" placeholder="Ngày kết thúc">
+            <button onclick="fetchData()">Lọc</button>
+        </div>
+        <div class="table-container" id="sensorTableContainer">
+            <h1>Lịch sử Cảm biến</h1>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nhiệt độ (°C)</th>
+                        <th>Độ ẩm (%)</th>
+                        <th>Độ ẩm đất</th>
+                        <th>Ánh sáng (lux)</th>
+                        <th>Thời gian</th>
+                    </tr>
+                </thead>
+                <tbody id="sensorHistoryTableBody"></tbody>
+            </table>
+            <div class="pagination" id="sensorPagination"></div>
+        </div>
+        <div class="table-container" id="deviceTableContainer" style="display: none;">
+            <h1>Lịch sử Thiết bị</h1>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Thiết bị</th>
+                        <th>Hành động</th>
+                        <th>Trạng thái</th>
+                        <th>Thời gian</th>
+                    </tr>
+                </thead>
+                <tbody id="deviceHistoryTableBody"></tbody>
+            </table>
+            <div class="pagination" id="devicePagination"></div>
+        </div>
+    </div>
+    <script>
+        let currentTab = 'sensor';
+        let sensorPage = 1;
+        let devicePage = 1;
+        const limit = 10;
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-container button').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`button[onclick="switchTab('${tab}')"]`).classList.add('active');
+            document.getElementById('sensorTableContainer').style.display = tab === 'sensor' ? 'block' : 'none';
+            document.getElementById('deviceTableContainer').style.display = tab === 'device' ? 'block' : 'none';
+            sensorPage = 1;
+            devicePage = 1;
+            fetchData();
+        }
+
+        async function fetchData() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const page = currentTab === 'sensor' ? sensorPage : devicePage;
+            const tableBody = document.getElementById(currentTab === 'sensor' ? 'sensorHistoryTableBody' : 'deviceHistoryTableBody');
+            tableBody.innerHTML = '<tr><td colspan="' + (currentTab === 'sensor' ? 6 : 5) + '">Đang tải dữ liệu...</td></tr>';
+
+            try {
+                const url = currentTab === 'sensor' 
+                    ? `/api/sensor_history?limit=${limit}&page=${page}${startDate ? `&start_date=${startDate}` : ''}${endDate ? `&end_date=${endDate}` : ''}`
+                    : `/api/device_history?limit=${limit}&page=${page}${startDate ? `&start_date=${startDate}` : ''}${endDate ? `&end_date=${endDate}` : ''}`;
+                console.log('Gửi yêu cầu tới:', url);
+                const response = await fetch(url);
+                console.log('Phản hồi:', response.status, response.statusText);
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                const result = await response.json();
+                console.log('Dữ liệu nhận được:', result);
+
+                if (currentTab === 'sensor') {
+                    loadSensorHistory(result.data, result.pagination);
+                } else {
+                    loadDeviceHistory(result.data, result.pagination);
+                }
+            } catch (error) {
+                console.error('Lỗi:', error);
+                tableBody.innerHTML = `<tr><td colspan="${currentTab === 'sensor' ? 6 : 5}" class="error">Lỗi: ${error.message}</td></tr>`;
+            }
+        }
+
+        function loadSensorHistory(data, pagination) {
+            const tableBody = document.getElementById('sensorHistoryTableBody');
+            tableBody.innerHTML = '';
+
+            if (data.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6">Không có dữ liệu để hiển thị</td></tr>';
+                updatePagination('sensor', pagination);
+                return;
+            }
+
+            data.forEach((entry, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${entry.id || index + 1}</td>
+                    <td>${entry.Temp ?? 'N/A'}</td>
+                    <td>${entry.Humid ?? 'N/A'}</td>
+                    <td>${entry.Soil ?? 'N/A'}</td>
+                    <td>${entry.Light ?? 'N/A'}</td>
+                    <td>${entry.timestamp ? new Date(entry.timestamp).toLocaleString() : 'N/A'}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            updatePagination('sensor', pagination);
+        }
+
+        function loadDeviceHistory(data, pagination) {
+            const tableBody = document.getElementById('deviceHistoryTableBody');
+            tableBody.innerHTML = '';
+
+            if (data.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="5">Không có dữ liệu để hiển thị</td></tr>';
+                updatePagination('device', pagination);
+                return;
+            }
+
+            data.forEach(entry => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${entry.ID ?? 'N/A'}</td>
+                    <td>${entry.device ?? 'N/A'}</td>
+                    <td>${entry.action ?? 'N/A'}</td>
+                    <td>${entry.status ?? 'N/A'}</td>
+                    <td>${entry.timestamp ? new Date(entry.timestamp).toLocaleString() : 'N/A'}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            updatePagination('device', pagination);
+        }
+
+        function updatePagination(type, pagination) {
+            const paginationDiv = document.getElementById(`${type}Pagination`);
+            paginationDiv.innerHTML = '';
+
+            const prevButton = document.createElement('button');
+            prevButton.innerText = 'Trước';
+            prevButton.disabled = pagination.currentPage === 1;
+            prevButton.onclick = () => {
+                if (type === 'sensor') sensorPage--;
+                else devicePage--;
+                fetchData();
+            };
+            paginationDiv.appendChild(prevButton);
+
+            const nextButton = document.createElement('button');
+            nextButton.innerText = 'Tiếp';
+            nextButton.disabled = pagination.currentPage === pagination.totalPages;
+            nextButton.onclick = () => {
+                if (type === 'sensor') sensorPage++;
+                else devicePage++;
+                fetchData();
+            };
+            paginationDiv.appendChild(nextButton);
+
+            const pageInfo = document.createElement('span');
+            pageInfo.style.color = 'white';
+            pageInfo.innerText = ` Trang ${pagination.currentPage} / ${pagination.totalPages} `;
+            paginationDiv.appendChild(pageInfo);
+        }
+
+        window.onload = () => {
+            console.log('Trang đã tải, gọi fetchData');
+            fetchData();
+        };
+    </script>
+</body>
+</html>

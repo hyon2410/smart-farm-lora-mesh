@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            height: 100vh;
+            background: linear-gradient(135deg, #00c3ff 0%, #1cefff 100%);
+        }
+        nav {
+            width: 70px;
+            background-color: #333;
+            color: white;
+            padding: 15px;
+            height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        nav ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            width: 100%;
+        }
+        nav ul li {
+            margin: 15px 0;
+            text-align: center;
+        }
+        nav ul li a {
+            color: white;
+            text-decoration: none;
+            font-size: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        nav ul li a:hover {
+            text-decoration: underline;
+        }
+        .content-container {
+            margin-left: 70px;
+            padding: 20px;
+        }
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            position: relative;
+        }
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #333;
+            font-size: 16px;
+            display: none;
+        }
+        .error {
+            color: red;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <ul>
+            <li><a href="index.html"><i class="fas fa-home"></i> HOME</a></li>
+            <li><a href="history.html"><i class="fas fa-database"></i> DATA</a></li>
+            <li><a href="device_history.html"><i class="fas fa-cogs"></i> DEVICE</a></li>
+            <li><a href="new.html"><i class="fas fa-plus"></i> NEW</a></li>
+        </ul>
+    </nav>
+    <div class="content-container">
+        <h1 class="text-3xl font-bold text-center mb-8 text-white">IoT Dashboard</h1>
+
+        <!-- Sensor History Section -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Lịch sử Dữ liệu Cảm biến</h2>
+            <div class="mb-4 flex flex-wrap gap-4">
+                <input type="date" id="sensorStartDate" class="border p-2 rounded" placeholder="Ngày bắt đầu">
+                <input type="date" id="sensorEndDate" class="border p-2 rounded" placeholder="Ngày kết thúc">
+                <input type="number" id="sensorLimit" class="border p-2 rounded w-24" placeholder="Số bản ghi" value="10" min="1">
+                <button onclick="fetchSensorHistory()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Lọc</button>
+            </div>
+            <div class="table-container">
+                <div class="loading" id="sensorLoading">Đang tải...</div>
+                <table class="w-full border-collapse">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="border p-2">ID</th>
+                            <th class="border p-2">Nhiệt độ (°C)</th>
+                            <th class="border p-2">Độ ẩm (%)</th>
+                            <th class="border p-2">Độ ẩm đất</th>
+                            <th class="border p-2">Ánh sáng (lux)</th>
+                            <th class="border p-2">Thời gian</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sensorTableBody"></tbody>
+                </table>
+            </div>
+            <div id="sensorPagination" class="mt-4 flex justify-between"></div>
+        </div>
+
+        <!-- Device History Section -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-semibold mb-4">Lịch sử Điều khiển Thiết bị</h2>
+            <div class="mb-4 flex flex-wrap gap-4">
+                <select id="deviceFilter" class="border p-2 rounded">
+                    <option value="">Tất cả thiết bị</option>
+                    <option value="light">Đèn</option>
+                    <option value="pump">Máy bơm</option>
+                </select>
+                <input type="date" id="deviceStartDate" class="border p-2 rounded" placeholder="Ngày bắt đầu">
+                <input type="date" id="deviceEndDate" class="border p-2 rounded" placeholder="Ngày kết thúc">
+                <input type="number" id="deviceLimit" class="border p-2 rounded w-24" placeholder="Số bản ghi" value="10" min="1">
+                <button onclick="fetchDeviceHistory()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">Lọc</button>
+            </div>
+            <div class="table-container">
+                <div class="loading" id="deviceLoading">Đang tải...</div>
+                <table class="w-full border-collapse">
+                    <thead>
+                        <tr class="bg-gray-200">
+                            <th class="border p-2">ID</th>
+                            <th class="border p-2">Thiết bị</th>
+                            <th class="border p-2">Hành động</th>
+                            <th class="border p-2">Trạng thái</th>
+                            <th class="border p-2">Thời gian</th>
+                        </tr>
+                    </thead>
+                    <tbody id="deviceTableBody"></tbody>
+                </table>
+            </div>
+            <div id="devicePagination" class="mt-4 flex justify-between"></div>
+        </div>
+    </div>
+
+    <script>
+        let sensorCurrentPage = 1;
+        let deviceCurrentPage = 1;
+
+        async function fetchSensorHistory(page = 1) {
+            sensorCurrentPage = page;
+            const startDate = document.getElementById('sensorStartDate').value;
+            const endDate = document.getElementById('sensorEndDate').value;
+            const limit = Math.max(1, parseInt(document.getElementById('sensorLimit').value) || 10);
+            const tableBody = document.getElementById('sensorTableBody');
+            const loading = document.getElementById('sensorLoading');
+
+            loading.style.display = 'block';
+            tableBody.innerHTML = '';
+
+            try {
+                const params = new URLSearchParams({
+                    page,
+                    limit,
+                    ...(startDate && { start_date: startDate }),
+                    ...(endDate && { end_date: endDate })
+                });
+                const response = await fetch(`http://localhost:5000/api/sensor_history?${params}`, { signal: AbortSignal.timeout(5000) });
+                if (!response.ok) throw new Error(`Lỗi HTTP! Trạng thái: ${response.status}`);
+                const { data, pagination } = await response.json();
+
+                tableBody.innerHTML = data.length === 0
+                    ? '<tr><td colspan="6" class="error">Không có dữ liệu để hiển thị</td></tr>'
+                    : data.map(row => `
+                        <tr>
+                            <td class="border p-2">${row.id}</td>
+                            <td class="border p-2">${row.Temp ?? 'N/A'}</td>
+                            <td class="border p-2">${row.Humid ?? 'N/A'}</td>
+                            <td class="border p-2">${row.Soil ?? 'N/A'}</td>
+                            <td class="border p-2">${row.Light ?? 'N/A'}</td>
+                            <td class="border p-2">${new Date(row.timestamp).toLocaleString('vi-VN')}</td>
+                        </tr>
+                    `).join('');
+
+                updatePagination('sensorPagination', pagination, fetchSensorHistory);
+            } catch (error) {
+                console.error('Lỗi khi lấy lịch sử cảm biến:', error);
+                tableBody.innerHTML = `<tr><td colspan="6" class="error">Lỗi: ${error.message}</td></tr>`;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        async function fetchDeviceHistory(page = 1) {
+            deviceCurrentPage = page;
+            const device = document.getElementById('deviceFilter').value;
+            const startDate = document.getElementById('deviceStartDate').value;
+            const endDate = document.getElementById('deviceEndDate').value;
+            const limit = Math.max(1, parseInt(document.getElementById('deviceLimit').value) || 10);
+            const tableBody = document.getElementById('deviceTableBody');
+            const loading = document.getElementById('deviceLoading');
+
+            loading.style.display = 'block';
+            tableBody.innerHTML = '';
+
+            try {
+                const params = new URLSearchParams({
+                    page,
+                    limit,
+                    ...(device && { device }),
+                    ...(startDate && { start_date: startDate }),
+                    ...(endDate && { end_date: endDate })
+                });
+                const response = await fetch(`http://localhost:5000/api/device_history?${params}`, { signal: AbortSignal.timeout(5000) });
+                if (!response.ok) throw new Error(`Lỗi HTTP! Trạng thái: ${response.status}`);
+                const { data, pagination } = await response.json();
+
+                tableBody.innerHTML = data.length === 0
+                    ? '<tr><td colspan="5" class="error">Không có dữ liệu để hiển thị</td></tr>'
+                    : data.map(row => `
+                        <tr>
+                            <td class="border p-2">${row.ID}</td>
+                            <td class="border p-2">${row.device}</td>
+                            <td class="border p-2">${row.action}</td>
+                            <td class="border p-2">${row.status}</td>
+                            <td class="border p-2">${new Date(row.timestamp).toLocaleString('vi-VN')}</td>
+                        </tr>
+                    `).join('');
+
+                updatePagination('devicePagination', pagination, fetchDeviceHistory);
+            } catch (error) {
+                console.error('Lỗi khi lấy lịch sử thiết bị:', error);
+                tableBody.innerHTML = `<tr><td colspan="5" class="error">Lỗi: ${error.message}</td></tr>`;
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function updatePagination(containerId, pagination, fetchFunction) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = `
+                <div>
+                    Trang ${pagination.currentPage} / ${pagination.totalPages} 
+                    (${pagination.totalRecords} bản ghi)
+                </div>
+                <div>
+                    <button 
+                        onclick="${fetchFunction.name}(${pagination.currentPage - 1})" 
+                        class="px-4 py-2 ${pagination.currentPage === 1 ? 'bg-gray-300' : 'bg-blue-500 text-white hover:bg-blue-600'} rounded mr-2"
+                        ${pagination.currentPage === 1 ? 'disabled' : ''}>
+                        Trước
+                    </button>
+                    <button 
+                        onclick="${fetchFunction.name}(${pagination.currentPage + 1})" 
+                        class="px-4 py-2 ${pagination.currentPage === pagination.totalPages ? 'bg-gray-300' : 'bg-blue-500 text-white hover:bg-blue-600'} rounded"
+                        ${pagination.currentPage === pagination.totalPages ? 'disabled' : ''}>
+                        Tiếp
+                    </button>
+                </div>
+            `;
+        }
+
+        // Auto-refresh device history every 5 seconds to update status
+        setInterval(() => {
+            if (document.getElementById('deviceTableBody').innerHTML) {
+                fetchDeviceHistory(deviceCurrentPage);
+            }
+        }, 5000);
+
+        // Initial fetch
+        fetchSensorHistory();
+        fetchDeviceHistory();
+    </script>
+</body>
+</html>
