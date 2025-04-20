@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,6 +14,7 @@
             height: 100vh;
             background: linear-gradient(135deg, #00c3ff 0%, #1cefff 100%);
         }
+
         nav {
             width: 70px;
             background-color: #333;
@@ -26,16 +28,19 @@
             flex-direction: column;
             align-items: center;
         }
+
         nav ul {
             list-style-type: none;
             padding: 0;
             margin: 0;
             width: 100%;
         }
+
         nav ul li {
             margin: 15px 0;
             text-align: center;
         }
+
         nav ul li a {
             color: white;
             text-decoration: none;
@@ -45,18 +50,22 @@
             align-items: center;
             gap: 5px;
         }
+
         nav ul li a:hover {
             text-decoration: underline;
         }
+
         .content-container {
             margin-left: 70px;
             padding: 20px;
         }
+
         .table-container {
             max-height: 400px;
             overflow-y: auto;
             position: relative;
         }
+
         .loading {
             position: absolute;
             top: 50%;
@@ -66,12 +75,14 @@
             font-size: 16px;
             display: none;
         }
+
         .error {
             color: red;
             text-align: center;
         }
     </style>
 </head>
+
 <body>
     <nav>
         <ul>
@@ -167,9 +178,13 @@
                     ...(startDate && { start_date: startDate }),
                     ...(endDate && { end_date: endDate })
                 });
-                const response = await fetch(`http://localhost:5000/api/sensor_history?${params}`, { signal: AbortSignal.timeout(5000) });
-                if (!response.ok) throw new Error(`Lỗi HTTP! Trạng thái: ${response.status}`);
+                const response = await fetch(`http://localhost:5000/api/sensor_history?${params}`);
+                if (!response.ok) {
+                    throw new Error(`Lỗi HTTP! Trạng thái: ${response.status}`);
+                }
+
                 const { data, pagination } = await response.json();
+                if (!data) throw new Error('Dữ liệu không hợp lệ');
 
                 tableBody.innerHTML = data.length === 0
                     ? '<tr><td colspan="6" class="error">Không có dữ liệu để hiển thị</td></tr>'
@@ -213,9 +228,13 @@
                     ...(startDate && { start_date: startDate }),
                     ...(endDate && { end_date: endDate })
                 });
-                const response = await fetch(`http://localhost:5000/api/device_history?${params}`, { signal: AbortSignal.timeout(5000) });
-                if (!response.ok) throw new Error(`Lỗi HTTP! Trạng thái: ${response.status}`);
+                const response = await fetch(`http://localhost:5000/api/device_history?${params}`);
+                if (!response.ok) {
+                    throw new Error(`Lỗi HTTP! Trạng thái: ${response.status}`);
+                }
+
                 const { data, pagination } = await response.json();
+                if (!data) throw new Error('Dữ liệu không hợp lệ');
 
                 tableBody.innerHTML = data.length === 0
                     ? '<tr><td colspan="5" class="error">Không có dữ liệu để hiển thị</td></tr>'
@@ -238,40 +257,38 @@
             }
         }
 
-        function updatePagination(containerId, pagination, fetchFunction) {
-            const container = document.getElementById(containerId);
-            container.innerHTML = `
-                <div>
-                    Trang ${pagination.currentPage} / ${pagination.totalPages} 
-                    (${pagination.totalRecords} bản ghi)
-                </div>
-                <div>
-                    <button 
-                        onclick="${fetchFunction.name}(${pagination.currentPage - 1})" 
-                        class="px-4 py-2 ${pagination.currentPage === 1 ? 'bg-gray-300' : 'bg-blue-500 text-white hover:bg-blue-600'} rounded mr-2"
-                        ${pagination.currentPage === 1 ? 'disabled' : ''}>
-                        Trước
-                    </button>
-                    <button 
-                        onclick="${fetchFunction.name}(${pagination.currentPage + 1})" 
-                        class="px-4 py-2 ${pagination.currentPage === pagination.totalPages ? 'bg-gray-300' : 'bg-blue-500 text-white hover:bg-blue-600'} rounded"
-                        ${pagination.currentPage === pagination.totalPages ? 'disabled' : ''}>
-                        Tiếp
-                    </button>
-                </div>
-            `;
+        function updatePagination(id, pagination, fetchFunction) {
+            const paginationElement = document.getElementById(id);
+            paginationElement.innerHTML = '';
+
+            const prevBtn = document.createElement('button');
+            prevBtn.textContent = 'Trước';
+            prevBtn.className = `${pagination.currentPage === 1 ? 'bg-gray-300' : 'bg-blue-500 text-white hover:bg-blue-600'} px-4 py-2 rounded`;
+            prevBtn.disabled = pagination.currentPage === 1;
+            prevBtn.addEventListener('click', () => fetchFunction(pagination.currentPage - 1));
+
+            const pageInfo = document.createElement('span');
+            pageInfo.className = 'px-4 py-2';
+            pageInfo.textContent = `${pagination.currentPage} / ${pagination.totalPages}`;
+
+            const nextBtn = document.createElement('button');
+            nextBtn.textContent = 'Sau';
+            nextBtn.className = `${pagination.currentPage === pagination.totalPages ? 'bg-gray-300' : 'bg-blue-500 text-white hover:bg-blue-600'} px-4 py-2 rounded`;
+            nextBtn.disabled = pagination.currentPage === pagination.totalPages;
+            nextBtn.addEventListener('click', () => fetchFunction(pagination.currentPage + 1));
+
+            paginationElement.appendChild(prevBtn);
+            paginationElement.appendChild(pageInfo);
+            paginationElement.appendChild(nextBtn);
         }
 
-        // Auto-refresh device history every 5 seconds to update status
-        setInterval(() => {
-            if (document.getElementById('deviceTableBody').innerHTML) {
-                fetchDeviceHistory(deviceCurrentPage);
-            }
-        }, 5000);
 
-        // Initial fetch
         fetchSensorHistory();
         fetchDeviceHistory();
+        window.fetchSensorHistory = fetchSensorHistory;
+        window.fetchDeviceHistory = fetchDeviceHistory;
+
     </script>
 </body>
+
 </html>
